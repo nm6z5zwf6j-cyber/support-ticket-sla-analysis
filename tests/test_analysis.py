@@ -22,6 +22,20 @@ class TicketTests(unittest.TestCase):
         self.assertEqual(generate_tickets(), generate_tickets())
         self.assertEqual(len(generate_tickets()), 600)
 
+    def test_invalid_timestamps_and_targets_are_rejected(self):
+        invalid = [
+            (1, '2024-01-01 09:00:00', 'high', 60, '2024-01-01 08:59:59'),
+            (1, '2024-02-30 09:00:00', 'high', 60, None),
+            (1, '2024-01-01 09:00:00', 'high', 0, None),
+            (1, '2024-01-01 09:00:00', 'high', 1.5, None),
+            (1, '2024-01-01 09:00:00', 'urgent', 60, None),
+        ]
+        for row in invalid:
+            with self.subTest(row=row), self.assertRaises(ValueError):
+                summarize([row])
+        with self.assertRaises(ValueError):
+            summarize([], 'invalid')
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -24,6 +24,23 @@ def generate_tickets(seed=27, count=600):
 
 
 def summarize(rows, cutoff="2024-04-02 00:00:00"):
+    def parse_timestamp(value):
+        try:
+            parsed = datetime.strptime(value, "%Y-%m-%d %H:%M:%S")
+            if parsed.strftime("%Y-%m-%d %H:%M:%S") != value:
+                raise ValueError("timestamp must use YYYY-MM-DD HH:MM:SS")
+            return parsed
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"Invalid timestamp: {value!r}") from exc
+
+    parse_timestamp(cutoff)
+    rows = list(rows)
+    for ticket_id, created, priority, target, responded in rows:
+        created_at = parse_timestamp(created)
+        if priority not in ("high", "normal") or type(target) is not int or target <= 0:
+            raise ValueError(f"Invalid priority or target for ticket {ticket_id}")
+        if responded is not None and parse_timestamp(responded) < created_at:
+            raise ValueError(f"Response precedes creation for ticket {ticket_id}")
     with closing(sqlite3.connect(":memory:")) as db:
         db.execute("CREATE TABLE tickets (id INTEGER PRIMARY KEY, created TEXT NOT NULL, priority TEXT NOT NULL, target_minutes INTEGER NOT NULL, responded TEXT)")
         db.executemany("INSERT INTO tickets VALUES (?,?,?,?,?)", rows)
